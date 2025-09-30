@@ -38,6 +38,11 @@
                             </a>
                         </li>
                         <li>
+                            <a class="dropdown-item" href="{{ url_for('my_dashboards') }}">
+                                <i class="fas fa-tachometer-alt"></i> My Dashboards
+                            </a>
+                        </li>
+                        <li>
                             <a class="dropdown-item" href="{{ url_for('my_data') }}">
                                 <i class="fas fa-database"></i> My Data
                             </a>
@@ -46,6 +51,11 @@
                         <li>
                             <a class="dropdown-item" href="{{ url_for('manage_users') }}">
                                 <i class="fas fa-users-cog"></i> Manage Users
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin_all_dashboards') }}">
+                                <i class="fas fa-tachometer-alt"></i> All Dashboards
                             </a>
                         </li>
                         {% endif %}
