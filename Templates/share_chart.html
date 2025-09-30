@@ -34,6 +34,11 @@
                             </a>
                         </li>
                         <li>
+                            <a class="dropdown-item" href="{{ url_for('my_dashboards') }}">
+                                <i class="fas fa-tachometer-alt"></i> My Dashboards
+                            </a>
+                        </li>
+                        <li>
                             <a class="dropdown-item" href="{{ url_for('my_data') }}">
                                 <i class="fas fa-database"></i> My Data
                             </a>
@@ -42,6 +47,11 @@
                         <li>
                             <a class="dropdown-item" href="{{ url_for('manage_users') }}">
                                 <i class="fas fa-users-cog"></i> Manage Users
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin_all_dashboards') }}">
+                                <i class="fas fa-tachometer-alt"></i> All Dashboards
                             </a>
                         </li>
                         {% endif %}
@@ -81,7 +91,7 @@
                         <form method="POST">
                             <div class="mb-4">
                                 <p class="text-muted">
-                                    Select users to share this chart with. They will be able to view this chart on their dashboard.
+                                    Select users to share this chart with. They will be able to view this chart on their dashboard and add it to their dashboards.
                                 </p>
                             </div>
 
@@ -106,7 +116,7 @@
 
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle"></i>
-                                <strong>Note:</strong> Shared users can view this chart but cannot edit or delete it. 
+                                <strong>Note:</strong> Shared users can view this chart and add it to their dashboards but cannot edit or delete it. 
                                 You can always update these sharing settings later.
                             </div>
                             {% else %}
