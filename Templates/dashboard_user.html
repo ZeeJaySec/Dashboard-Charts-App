@@ -19,6 +19,9 @@
             height: 300px;
             width: 100%;
         }
+        .user-dropdown {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -28,25 +31,36 @@
                 <i class="fas fa-chart-bar"></i> Chart App
             </a>
             <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3">
-                    <i class="fas fa-user"></i> {{ username }}
-                </span>
-                <a class="nav-link active" href="{{ url_for('dashboard') }}">
-                    <i class="fas fa-tachometer-alt"></i> Dashboard
-                </a>
-                <a class="nav-link" href="{{ url_for('add_data') }}">
-                    <i class="fas fa-plus"></i> Add Chart
-                </a>
-                <a class="nav-link" href="{{ url_for('my_data') }}">
-                    <i class="fas fa-database"></i> My Data
-                </a>
-                <a class="nav-link" href="{{ url_for('logout') }}">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle user-dropdown" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle"></i> {{ username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><span class="dropdown-item-text text-muted">Signed in as <strong>{{ username }}</strong></span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('change_password') }}">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('my_data') }}">
+                                <i class="fas fa-database"></i> My Data
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
 
+    <!-- Rest of the dashboard_user.html content remains the same -->
     <div class="container mt-4">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -280,6 +294,9 @@
                                 <i class="fas fa-paint-brush"></i> Customize
                             </a>
                             ${!isShared ? `
+                            <button class="btn btn-sm btn-outline-success" onclick="openShareModal(${chart.id}, '${escapeHtml(chart.chart_name)}')">
+                                <i class="fas fa-share-alt"></i> Share
+                            </button>
                             <a href="/edit-data/${chart.id}" class="btn btn-sm btn-outline-secondary">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
