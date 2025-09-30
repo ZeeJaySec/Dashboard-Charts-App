@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Chart App</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">Welcome, {{ session.username }}!</span>
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('add_data') }}">Add Data</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2>My Chart Data</h2>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if data_sets %}
+            <div class="row">
+                {% for data_set in data_sets %}
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-0">{{ data_set.chart_name }}</h5>
+                                <small class="text-muted">
+                                    Type: {{ data_set.data_type }} | 
+                                    Created: {{ data_set.created_at[:16] }} |
+                                    Rows: {{ data_set.rows|length }} | 
+                                    Columns: {{ data_set.columns|length }}
+                                </small>
+                            </div>
+                            <div>
+                                {% if data_set.is_public %}
+                                <span class="badge bg-success me-2">Public</span>
+                                {% endif %}
+                                {% if data_set.shared_with %}
+                                <span class="badge bg-info">Shared with {{ data_set.shared_with|length }} user(s)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if data_set.columns and data_set.rows and data_set.chart_values %}
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Rows / Columns</th>
+                                            {% for column in data_set.columns %}
+                                            <th>{{ column }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row_index in range(data_set.rows|length) %}
+                                        <tr>
+                                            <td class="fw-bold bg-light">{{ data_set.rows[row_index] }}</td>
+                                            {% for col_index in range(data_set.columns|length) %}
+                                            <td>
+                                                {{ data_set.chart_values[row_index][col_index] }}
+                                            </td>
+                                            {% endfor %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-warning">
+                                No data available for this chart.
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">View Chart</a>
+                                <a href="{{ url_for('edit_data', chart_id=data_set.id) }}" class="btn btn-outline-secondary">Edit</a>
+                                <a href="{{ url_for('share_chart', chart_id=data_set.id) }}" class="btn btn-outline-info">
+                                    <i class="fas fa-share-alt"></i> Share
+                                </a>
+                                <a href="{{ url_for('duplicate_chart', chart_id=data_set.id) }}" class="btn btn-outline-success">Duplicate</a>
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ data_set.id }}">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delete Confirmation Modal -->
+                    <div class="modal fade" id="deleteModal{{ data_set.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Confirm Delete</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    Are you sure you want to delete "{{ data_set.chart_name }}"?
+                                    This action cannot be undone.
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <a href="{{ url_for('delete_chart', chart_id=data_set.id) }}" class="btn btn-danger">Delete</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <h4>No data found</h4>
+                <p>You haven't created any chart data yet. <a href="{{ url_for('add_data') }}" class="alert-link">Create your first chart</a> to get started!</p>
+            </div>
+        {% endif %}
+
+        <div class="mt-3">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="{{ url_for('add_data') }}" class="btn btn-primary">Add New Data</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
