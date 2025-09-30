@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ dashboard.name }} - Chart App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .user-dropdown { cursor: pointer; }
+        .chart-container { 
+            position: relative; 
+            height: 300px; 
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .chart-card {
+            border: 1px solid #e3e6f0;
+            border-radius: 0.35rem;
+            background: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-chart-bar"></i> Chart App
+            </a>
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle user-dropdown" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle"></i> {{ session.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><span class="dropdown-item-text text-muted">Signed in as <strong>{{ session.username }}</strong></span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('change_password') }}">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('my_dashboards') }}">
+                                <i class="fas fa-tachometer-alt"></i> My Dashboards
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('my_data') }}">
+                                <i class="fas fa-database"></i> My Data
+                            </a>
+                        </li>
+                        {% if session.role == 'admin' %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('manage_users') }}">
+                                <i class="fas fa-users-cog"></i> Manage Users
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin_all_dashboards') }}">
+                                <i class="fas fa-tachometer-alt"></i> All Dashboards
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header p-4 mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="mb-1">{{ dashboard.name }}</h2>
+                    <p class="mb-2">{{ dashboard.description or 'No description' }}</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-user"></i> {{ dashboard.owner_username }}
+                        </span>
+                        {% if dashboard.is_public %}
+                        <span class="badge bg-success">Public</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Private</span>
+                        {% endif %}
+                        <span class="badge bg-info">
+                            <i class="fas fa-chart-bar"></i> {{ dashboard_charts|length }} charts
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="btn-group">
+                        <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addChartModal">
+                            <i class="fas fa-plus"></i> Add Chart
+                        </button>
+                        <a href="{{ url_for('my_dashboards') }}" class="btn btn-outline-light">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Charts Grid -->
+        {% if dashboard_charts %}
+        <div class="row">
+            {% for chart in dashboard_charts %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="chart-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">{{ chart.chart_name }}</h6>
+                        <div>
+                            <span class="badge bg-primary">{{ chart.data_type }}</span>
+                            {% if chart.chart_owner != session.username %}
+                            <span class="badge bg-warning">Shared</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-{{ chart.chart_id }}"></canvas>
+                    </div>
+                    {% if chart.chart_title %}
+                    <p class="text-muted mt-2 mb-1"><small>{{ chart.chart_title }}</small></p>
+                    {% endif %}
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small class="text-muted">
+                            By: {{ chart.chart_owner }}
+                        </small>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeChartFromDashboard({{ chart.id }})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Charts Added</h4>
+            <p class="text-muted mb-4">This dashboard doesn't have any charts yet.</p>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addChartModal">
+                <i class="fas fa-plus"></i> Add Your First Chart
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Add Chart Modal -->
+    <div class="modal fade" id="addChartModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Chart to Dashboard</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% if available_charts %}
+                    <div class="row">
+                        {% for chart in available_charts %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ chart.chart_name }}</h6>
+                                    <p class="card-text">
+                                        <span class="badge bg-info">{{ chart.data_type }}</span>
+                                        {% if not chart.is_owner %}
+                                        <span class="badge bg-warning">Shared by {{ chart.owner_username }}</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="card-footer">
+                                    <button class="btn btn-sm btn-primary w-100" 
+                                            onclick="addChartToDashboard({{ chart.id }})">
+                                        <i class="fas fa-plus"></i> Add to Dashboard
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Charts Available</h5>
+                        <p class="text-muted">You don't have any charts to add to this dashboard.</p>
+                        <a href="{{ url_for('add_data') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create New Chart
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Render charts when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            renderDashboardCharts();
+        });
+
+        function renderDashboardCharts() {
+            const charts = {{ dashboard_charts | tojson }};
+            
+            charts.forEach(chart => {
+                const canvas = document.getElementById(`chart-${chart.chart_id}`);
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                
+                try {
+                    const chartData = prepareChartData(chart);
+                    new Chart(ctx, chartData);
+                } catch (error) {
+                    console.error(`Error rendering chart ${chart.chart_id}:`, error);
+                    ctx.font = '14px Arial';
+                    ctx.fillStyle = '#999';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Error rendering chart', canvas.width / 2, canvas.height / 2);
+                }
+            });
+        }
+
+        function prepareChartData(chart) {
+            const { data_type, columns, rows, values, chart_title, x_axis_label, y_axis_label, custom_colors } = chart;
+            
+            const defaultColors = [
+                '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                '#858796', '#5a5c69', '#6f42c1', '#e83e8c', '#fd7e14'
+            ];
+            
+            const colors = custom_colors && custom_colors.length > 0 ? custom_colors : defaultColors;
+
+            const commonConfig = {
+                type: data_type || 'bar',
+                data: {
+                    labels: rows || [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: !!chart_title,
+                            text: chart_title || ''
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            };
+
+            if (columns && values) {
+                columns.forEach((column, index) => {
+                    const dataset = {
+                        label: column,
+                        data: values.map(row => row[index]),
+                        backgroundColor: colors[index % colors.length],
+                        borderColor: colors[index % colors.length],
+                        borderWidth: 1
+                    };
+                    commonConfig.data.datasets.push(dataset);
+                });
+            }
+
+            return commonConfig;
+        }
+
+        function addChartToDashboard(chartId) {
+            fetch('/api/add-chart-to-dashboard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    dashboard_id: {{ dashboard.id }},
+                    chart_id: chartId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to add chart to dashboard');
+            });
+        }
+
+        function removeChartFromDashboard(dashboardChartId) {
+            if (confirm('Are you sure you want to remove this chart from the dashboard?')) {
+                // Implement remove functionality here
+                alert('Remove functionality to be implemented');
+            }
+        }
+    </script>
+</body>
+</html>
