@@ -1,25 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My Data</title>
+    <title>My Data - Chart App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .user-dropdown {
+            cursor: pointer;
+        }
+        .table-actions {
+            white-space: nowrap;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="#">Chart App</a>
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-chart-bar"></i> Chart App
+            </a>
             <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3">Welcome, {{ session.username }}!</span>
-                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a class="nav-link" href="{{ url_for('add_data') }}">Add Data</a>
-                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle user-dropdown" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle"></i> {{ session.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><span class="dropdown-item-text text-muted">Signed in as <strong>{{ session.username }}</strong></span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('change_password') }}">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('my_data') }}">
+                                <i class="fas fa-database"></i> My Data
+                            </a>
+                        </li>
+                        {% if session.role == 'admin' %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('manage_users') }}">
+                                <i class="fas fa-users-cog"></i> Manage Users
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
 
     <div class="container mt-4">
-        <h2>My Chart Data</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-database"></i> My Chart Data</h2>
+            <a href="{{ url_for('add_data') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Chart
+            </a>
+        </div>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -33,108 +76,89 @@
         {% endwith %}
 
         {% if data_sets %}
-            <div class="row">
-                {% for data_set in data_sets %}
-                <div class="col-12 mb-4">
-                    <div class="card">
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="card-title mb-0">{{ data_set.chart_name }}</h5>
-                                <small class="text-muted">
-                                    Type: {{ data_set.data_type }} | 
-                                    Created: {{ data_set.created_at[:16] }} |
-                                    Rows: {{ data_set.rows|length }} | 
-                                    Columns: {{ data_set.columns|length }}
-                                </small>
-                            </div>
-                            <div>
-                                {% if data_set.is_public %}
-                                <span class="badge bg-success me-2">Public</span>
-                                {% endif %}
-                                {% if data_set.shared_with %}
-                                <span class="badge bg-info">Shared with {{ data_set.shared_with|length }} user(s)</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            {% if data_set.columns and data_set.rows and data_set.chart_values %}
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-striped">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>Rows / Columns</th>
-                                            {% for column in data_set.columns %}
-                                            <th>{{ column }}</th>
-                                            {% endfor %}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for row_index in range(data_set.rows|length) %}
-                                        <tr>
-                                            <td class="fw-bold bg-light">{{ data_set.rows[row_index] }}</td>
-                                            {% for col_index in range(data_set.columns|length) %}
-                                            <td>
-                                                {{ data_set.chart_values[row_index][col_index] }}
-                                            </td>
-                                            {% endfor %}
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {% else %}
-                            <div class="alert alert-warning">
-                                No data available for this chart.
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="card-footer">
-                            <div class="btn-group btn-group-sm">
-                                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">View Chart</a>
-                                <a href="{{ url_for('edit_data', chart_id=data_set.id) }}" class="btn btn-outline-secondary">Edit</a>
-                                <a href="{{ url_for('share_chart', chart_id=data_set.id) }}" class="btn btn-outline-info">
-                                    <i class="fas fa-share-alt"></i> Share
-                                </a>
-                                <a href="{{ url_for('duplicate_chart', chart_id=data_set.id) }}" class="btn btn-outline-success">Duplicate</a>
-                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ data_set.id }}">
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Delete Confirmation Modal -->
-                    <div class="modal fade" id="deleteModal{{ data_set.id }}" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Confirm Delete</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    Are you sure you want to delete "{{ data_set.chart_name }}"?
-                                    This action cannot be undone.
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <a href="{{ url_for('delete_chart', chart_id=data_set.id) }}" class="btn btn-danger">Delete</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-table"></i> Your Charts</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Chart Name</th>
+                                <th>Type</th>
+                                <th>Columns</th>
+                                <th>Rows</th>
+                                <th>Visibility</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in data_sets %}
+                            <tr>
+                                <td>
+                                    <strong>{{ data.chart_name }}</strong>
+                                    {% if data.error %}
+                                    <span class="badge bg-danger" title="{{ data.error }}">Error</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ data.data_type }}</span>
+                                </td>
+                                <td>{{ data.columns|length }}</td>
+                                <td>{{ data.rows|length }}</td>
+                                <td>
+                                    {% if data.is_public %}
+                                    <span class="badge bg-success">Public</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Private</span>
+                                    {% endif %}
+                                    {% if data.shared_with %}
+                                    <span class="badge bg-warning">Shared</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ data.created_at[:16] }}</td>
+                                <td class="table-actions">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('customize_chart', chart_id=data.id) }}" class="btn btn-outline-primary" title="Customize">
+                                            <i class="fas fa-paint-brush"></i>
+                                        </a>
+                                        <a href="{{ url_for('edit_data', chart_id=data.id) }}" class="btn btn-outline-secondary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('share_chart', chart_id=data.id) }}" class="btn btn-outline-success" title="Share">
+                                            <i class="fas fa-share-alt"></i>
+                                        </a>
+                                        <a href="{{ url_for('duplicate_chart', chart_id=data.id) }}" class="btn btn-outline-info" title="Duplicate">
+                                            <i class="fas fa-copy"></i>
+                                        </a>
+                                        <a href="{{ url_for('delete_chart', chart_id=data.id) }}" class="btn btn-outline-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this chart?')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                {% endfor %}
             </div>
+        </div>
         {% else %}
-            <div class="alert alert-info">
-                <h4>No data found</h4>
-                <p>You haven't created any chart data yet. <a href="{{ url_for('add_data') }}" class="alert-link">Create your first chart</a> to get started!</p>
-            </div>
+        <div class="alert alert-info text-center">
+            <h5><i class="fas fa-inbox"></i> No Data Sets Found</h5>
+            <p class="mb-3">You haven't created any charts yet. Get started by creating your first chart!</p>
+            <a href="{{ url_for('add_data') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Your First Chart
+            </a>
+        </div>
         {% endif %}
 
         <div class="mt-3">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
-            <a href="{{ url_for('add_data') }}" class="btn btn-primary">Add New Data</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
         </div>
     </div>
 
