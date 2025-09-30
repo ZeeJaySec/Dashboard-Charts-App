@@ -4,18 +4,31 @@
     <title>Manage Users</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .user-dropdown { cursor: pointer; }
+        .role-badge { font-size: 0.75em; }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="#">Chart App - Admin</a>
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">Chart App - Admin</a>
             <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3">Welcome, {{ session.username }}!</span>
-                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a class="nav-link" href="{{ url_for('add_data') }}">Add Data</a>
-                <a class="nav-link" href="{{ url_for('my_data') }}">My Data</a>
-                <a class="nav-link active" href="{{ url_for('manage_users') }}">Manage Users</a>
-                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle user-dropdown" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-crown"></i> {{ session.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><span class="dropdown-item-text text-muted">Signed in as <strong>{{ session.username }}</strong> (Admin)</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('change_password') }}"><i class="fas fa-key"></i> Change Password</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('my_data') }}"><i class="fas fa-database"></i> My Data</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('my_dashboards') }}"><i class="fas fa-tachometer-alt"></i> My Dashboards</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('manage_users') }}"><i class="fas fa-users-cog"></i> Manage Users</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
@@ -72,7 +85,10 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge {% if user.role == 'admin' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                    <span class="badge role-badge {% if user.role == 'admin' %}bg-danger
+                                        {% elif user.role == 'PT' %}bg-primary
+                                        {% elif user.role == 'VA' %}bg-success
+                                        {% else %}bg-secondary{% endif %}">
                                         {{ user.role }}
                                     </span>
                                 </td>
@@ -83,6 +99,9 @@
                                         <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ user.id }}">
                                             <i class="fas fa-key"></i> Reset Password
                                         </button>
+                                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#changeRoleModal{{ user.id }}">
+                                            <i class="fas fa-user-tag"></i> Change Role
+                                        </button>
                                         <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ user.id }}">
                                             <i class="fas fa-trash"></i> Delete
                                         </button>
@@ -92,6 +111,42 @@
                                     </div>
                                 </td>
                             </tr>
+
+                            <!-- Change Role Modal -->
+                            <div class="modal fade" id="changeRoleModal{{ user.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Change User Role</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form action="{{ url_for('change_user_role', user_id=user.id) }}" method="POST">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Change role for <strong>"{{ user.username }}"</strong></label>
+                                                    <select class="form-select" name="new_role" required>
+                                                        <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
+                                                        <option value="PT" {% if user.role == 'PT' %}selected{% endif %}>PT</option>
+                                                        <option value="VA" {% if user.role == 'VA' %}selected{% endif %}>VA</option>
+                                                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                                    </select>
+                                                    <div class="form-text">
+                                                        <strong>Roles:</strong><br>
+                                                        • User: Basic chart creation and viewing<br>
+                                                        • PT: Physical Therapist access<br>
+                                                        • VA: Virtual Assistant access<br>
+                                                        • Admin: Full system access
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-info">Change Role</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <!-- Reset Password Modal -->
                             <div class="modal fade" id="resetPasswordModal{{ user.id }}" tabindex="-1">
@@ -132,7 +187,7 @@
                                         </div>
                                         <div class="modal-body">
                                             Are you sure you want to delete user <strong>"{{ user.username }}"</strong>?
-                                            This will also delete all their charts and cannot be undone.
+                                            This will also delete all their charts and dashboards and cannot be undone.
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
