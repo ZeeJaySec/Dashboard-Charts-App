@@ -22,6 +22,9 @@
         .admin-badge {
             background: linear-gradient(45deg, #dc3545, #e74a3b);
         }
+        .user-dropdown {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -31,28 +34,41 @@
                 <i class="fas fa-chart-bar"></i> Chart App - Admin
             </a>
             <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3">
-                    <i class="fas fa-crown"></i> {{ username }} (Admin)
-                </span>
-                <a class="nav-link active" href="{{ url_for('dashboard') }}">
-                    <i class="fas fa-tachometer-alt"></i> Dashboard
-                </a>
-                <a class="nav-link" href="{{ url_for('add_data') }}">
-                    <i class="fas fa-plus"></i> Add Chart
-                </a>
-                <a class="nav-link" href="{{ url_for('my_data') }}">
-                    <i class="fas fa-database"></i> My Data
-                </a>
-                <a class="nav-link" href="{{ url_for('manage_users') }}">
-                    <i class="fas fa-users-cog"></i> Manage Users
-                </a>
-                <a class="nav-link" href="{{ url_for('logout') }}">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle user-dropdown" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-crown"></i> {{ username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><span class="dropdown-item-text text-muted">Signed in as <strong>{{ username }}</strong> (Admin)</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('change_password') }}">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('my_data') }}">
+                                <i class="fas fa-database"></i> My Data
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('manage_users') }}">
+                                <i class="fas fa-users-cog"></i> Manage Users
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
 
+    <!-- Rest of the dashboard_admin.html content remains the same -->
     <div class="container mt-4">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -490,157 +506,3 @@
         .catch(error => {
             console.error('Error updating sharing:', error);
             showError('Failed to update sharing settings');
-        });
-    }
-
-    function showSuccess(message) {
-        // Create temporary success alert
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-success alert-dismissible fade show';
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 3000);
-    }
-
-    // ... (Keep all the same functions from dashboard_user.html for chart rendering)
-    // [Include all the same chart rendering functions from the previous dashboard_user.html]
-
-    function renderChartVisualizations(charts) {
-        charts.forEach(chart => {
-            const canvas = document.getElementById(`chart-${chart.id}`);
-            if (!canvas) return;
-
-            const ctx = canvas.getContext('2d');
-            
-            try {
-                const chartData = prepareChartData(chart);
-                new Chart(ctx, chartData);
-            } catch (error) {
-                console.error(`Error rendering chart ${chart.id}:`, error);
-                // Show error message on canvas
-                ctx.font = '14px Arial';
-                ctx.fillStyle = '#999';
-                ctx.textAlign = 'center';
-                ctx.fillText('Error rendering chart', canvas.width / 2, canvas.height / 2);
-            }
-        });
-    }
-
-    function prepareChartData(chart) {
-        const { type, columns, rows, values, chart_title, x_axis_label, y_axis_label, custom_colors } = chart;
-        
-        // Default colors if custom colors not provided
-        const defaultColors = [
-            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
-            '#858796', '#5a5c69', '#6f42c1', '#e83e8c', '#fd7e14'
-        ];
-        
-        const colors = custom_colors && custom_colors.length > 0 ? custom_colors : defaultColors;
-
-        const commonConfig = {
-            type: type || 'bar',
-            data: {
-                labels: rows || [],
-                datasets: []
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: !!chart_title,
-                        text: chart_title || ''
-                    },
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: !!x_axis_label,
-                            text: x_axis_label || ''
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: !!y_axis_label,
-                            text: y_axis_label || ''
-                        },
-                        beginAtZero: true
-                    }
-                }
-            }
-        };
-
-        if (columns && values) {
-            columns.forEach((column, index) => {
-                const dataset = {
-                    label: column,
-                    data: values.map(row => row[index]),
-                    backgroundColor: colors[index % colors.length],
-                    borderColor: colors[index % colors.length],
-                    borderWidth: 1
-                };
-                commonConfig.data.datasets.push(dataset);
-            });
-        }
-
-        return commonConfig;
-    }
-
-    function getTypeBadgeClass(type) {
-        const typeClasses = {
-            'bar': 'bg-primary',
-            'line': 'bg-success',
-            'pie': 'bg-danger',
-            'doughnut': 'bg-warning',
-            'radar': 'bg-info'
-        };
-        return typeClasses[type] || 'bg-secondary';
-    }
-
-    function escapeHtml(unsafe) {
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    // UI State Management
-    function showLoading() {
-        document.getElementById('loadingState').style.display = 'block';
-        document.getElementById('errorState').style.display = 'none';
-        document.getElementById('emptyState').style.display = 'none';
-        document.getElementById('chartsGrid').style.display = 'none';
-    }
-
-    function hideLoading() {
-        document.getElementById('loadingState').style.display = 'none';
-    }
-
-    function showError(message) {
-        document.getElementById('errorMessage').textContent = message;
-        document.getElementById('errorState').style.display = 'block';
-    }
-
-    function showEmptyState() {
-        document.getElementById('emptyState').style.display = 'block';
-    }
-
-    function showChartsGrid() {
-        document.getElementById('chartsGrid').style.display = 'flex';
-    }
-    </script>
-</body>
-</html>
