@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Chart Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        .data-table th {
+            background-color: #f2f2f2;
+        }
+        .data-table input {
+            width: 100%;
+            border: none;
+            text-align: center;
+            background: transparent;
+        }
+        .row-header {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .data-table input:focus {
+            background-color: #e8f4fd;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Chart App</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">Welcome, {{ session.username }}!</span>
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('my_data') }}">My Data</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2>Edit Chart Data</h2>
+        
+        <form method="POST" id="chartForm">
+            <input type="hidden" name="chart_id" value="{{ chart_id }}">
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Chart Name</label>
+                    <input type="text" class="form-control" name="chart_name" value="{{ data.chart_name }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Chart Type</label>
+                    <select class="form-select" name="data_type" id="chartType" required>
+                        <option value="bar" {% if data.data_type == 'bar' %}selected{% endif %}>Bar Chart</option>
+                        <option value="line" {% if data.data_type == 'line' %}selected{% endif %}>Line Chart</option>
+                        <option value="pie" {% if data.data_type == 'pie' %}selected{% endif %}>Pie Chart</option>
+                        <option value="doughnut" {% if data.data_type == 'doughnut' %}selected{% endif %}>Doughnut Chart</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Public Chart Option -->
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_public" id="is_public" 
+                           {% if data.is_public %}checked{% endif %}>
+                    <label class="form-check-label" for="is_public">
+                        Make this chart public (visible to all users)
+                    </label>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Number of Rows</label>
+                    <input type="number" class="form-control" id="rowCount" min="1" max="20" value="{{ data.rows|length }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Number of Columns</label>
+                    <input type="number" class="form-control" id="colCount" min="1" max="10" value="{{ data.columns|length }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <button type="button" class="btn btn-secondary" onclick="generateTable()">Update Table Structure</button>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Data Table</label>
+                <div id="tableContainer">
+                    <!-- Table will be generated here with existing data -->
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Update Chart Data</button>
+            <a href="{{ url_for('my_data') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+
+    <script>
+        function generateTable() {
+            const rowCount = parseInt(document.getElementById('rowCount').value);
+            const colCount = parseInt(document.getElementById('colCount').value);
+            const container = document.getElementById('tableContainer');
+            
+            let tableHTML = '<table class="data-table table-bordered">';
+            
+            // Header row with column names
+            tableHTML += '<tr><th class="row-header">Rows / Columns</th>';
+            for (let col = 0; col < colCount; col++) {
+                const colName = {{ data.columns|tojson }}[col] || `Column ${col + 1}`;
+                tableHTML += `<th><input type="text" name="col_${col}" value="${colName}" required></th>`;
+            }
+            tableHTML += '</tr>';
+            
+            // Data rows
+            for (let row = 0; row < rowCount; row++) {
+                tableHTML += `<tr>`;
+                const rowName = {{ data.rows|tojson }}[row] || `Row ${row + 1}`;
+                tableHTML += `<td class="row-header"><input type="text" name="row_${row}" value="${rowName}" required></td>`;
+                for (let col = 0; col < colCount; col++) {
+                    // Use data.data_values instead of data.values
+                    const cellValue = {{ data.data_values|tojson }}[row] && {{ data.data_values|tojson }}[row][col] !== undefined ? {{ data.data_values|tojson }}[row][col] : 0;
+                    tableHTML += `<td><input type="number" name="cell_${row}_${col}" value="${cellValue}" step="0.01" required></td>`;
+                }
+                tableHTML += '</tr>';
+            }
+            
+            tableHTML += '</table>';
+            container.innerHTML = tableHTML;
+        }
+
+        // Generate initial table with existing data
+        document.addEventListener('DOMContentLoaded', generateTable);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
