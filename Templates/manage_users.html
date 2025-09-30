@@ -22,10 +22,15 @@
 
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>User Management</h2>
-            <a href="{{ url_for('register') }}" class="btn btn-primary">
-                <i class="fas fa-user-plus"></i> Create New User
-            </a>
+            <h2><i class="fas fa-users-cog"></i> User Management</h2>
+            <div>
+                <a href="{{ url_for('register') }}" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Create New User
+                </a>
+                <a href="{{ url_for('change_password') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-key"></i> Change My Password
+                </a>
+            </div>
         </div>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -41,7 +46,7 @@
 
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">All Users</h5>
+                <h5 class="card-title mb-0"><i class="fas fa-users"></i> All Users</h5>
             </div>
             <div class="card-body">
                 {% if users %}
@@ -73,15 +78,49 @@
                                 </td>
                                 <td>{{ user.created_at[:16] }}</td>
                                 <td>
-                                    {% if user.id != session.user_id %}
-                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ user.id }}">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                    {% else %}
-                                    <span class="text-muted">Current user</span>
-                                    {% endif %}
+                                    <div class="btn-group">
+                                        {% if user.id != session.user_id %}
+                                        <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ user.id }}">
+                                            <i class="fas fa-key"></i> Reset Password
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ user.id }}">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                        {% else %}
+                                        <span class="text-muted">Current user</span>
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
+
+                            <!-- Reset Password Modal -->
+                            <div class="modal fade" id="resetPasswordModal{{ user.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Reset Password</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form action="{{ url_for('reset_user_password', user_id=user.id) }}" method="POST">
+                                                <div class="mb-3">
+                                                    <label for="newPassword{{ user.id }}" class="form-label">New Password for <strong>"{{ user.username }}"</strong></label>
+                                                    <input type="password" class="form-control" id="newPassword{{ user.id }}" name="new_password" required minlength="6" placeholder="Enter new password">
+                                                    <div class="form-text">Password must be at least 6 characters long.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="confirmPassword{{ user.id }}" class="form-label">Confirm New Password</label>
+                                                    <input type="password" class="form-control" id="confirmPassword{{ user.id }}" name="confirm_password" required minlength="6" placeholder="Confirm new password">
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-warning">Reset Password</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <!-- Delete Confirmation Modal -->
                             <div class="modal fade" id="deleteModal{{ user.id }}" tabindex="-1">
@@ -108,7 +147,7 @@
                 </div>
                 {% else %}
                 <div class="alert alert-info">
-                    <h5>No users found</h5>
+                    <h5><i class="fas fa-info-circle"></i> No users found</h5>
                     <p class="mb-0">There are no users in the system yet.</p>
                 </div>
                 {% endif %}
@@ -116,10 +155,38 @@
         </div>
 
         <div class="mt-3">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+    // Password confirmation validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const modals = document.querySelectorAll('[id^="resetPasswordModal"]');
+        modals.forEach(modal => {
+            const form = modal.querySelector('form');
+            form.addEventListener('submit', function(e) {
+                const password = form.querySelector('input[name="new_password"]').value;
+                const confirmPassword = form.querySelector('input[name="confirm_password"]').value;
+                
+                if (password !== confirmPassword) {
+                    e.preventDefault();
+                    alert('Passwords do not match!');
+                    return false;
+                }
+                
+                if (password.length < 6) {
+                    e.preventDefault();
+                    alert('Password must be at least 6 characters long!');
+                    return false;
+                }
+            });
+        });
+    });
+    </script>
 </body>
 </html>
