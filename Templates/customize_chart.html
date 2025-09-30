@@ -67,4 +67,159 @@
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title mb-0">
-                            <i class="fas fa-p
+                            <i class="fas fa-paint-brush"></i> Customize Chart: {{ data.chart_name }}
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <form method="POST">
+                            <!-- Chart Titles -->
+                            <div class="mb-4">
+                                <h5><i class="fas fa-heading"></i> Chart Titles & Labels</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="chart_title" class="form-label">Chart Title</label>
+                                            <input type="text" class="form-control" id="chart_title" name="chart_title" 
+                                                   value="{{ data.chart_title }}" placeholder="Enter chart title">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="data_type" class="form-label">Chart Type</label>
+                                            <input type="text" class="form-control" value="{{ data.data_type|title }} Chart" readonly>
+                                            <small class="form-text text-muted">Chart type cannot be changed here. Edit the chart data to change type.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="x_axis_label" class="form-label">X-Axis Label</label>
+                                            <input type="text" class="form-control" id="x_axis_label" name="x_axis_label" 
+                                                   value="{{ data.x_axis_label }}" placeholder="Enter X-axis label">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="y_axis_label" class="form-label">Y-Axis Label</label>
+                                            <input type="text" class="form-control" id="y_axis_label" name="y_axis_label" 
+                                                   value="{{ data.y_axis_label }}" placeholder="Enter Y-axis label">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Custom Colors -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5><i class="fas fa-palette"></i> Custom Colors</h5>
+                                    <small class="text-muted">Set custom colors for each data series</small>
+                                </div>
+                                <div id="colors-container">
+                                    {% for i in range(data.columns|length) %}
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label">{{ data.columns[i] }}</label>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="input-group">
+                                                <span class="color-preview" id="colorPreview{{ i }}" 
+                                                      style="background-color: {{ data.custom_colors[i] if data.custom_colors and i < data.custom_colors|length else '#4e73df' }}"></span>
+                                                <input type="color" class="form-control form-control-color" id="color_{{ i }}" 
+                                                       name="color_{{ i }}" value="{{ data.custom_colors[i] if data.custom_colors and i < data.custom_colors|length else '#4e73df' }}"
+                                                       title="Choose color for {{ data.columns[i] }}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Preview Section -->
+                            <div class="mb-4">
+                                <h5><i class="fas fa-eye"></i> Preview</h5>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Your changes will be applied when you save. You can see the final result on your dashboard.
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Current Data:</strong>
+                                        <ul class="list-group mt-2">
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>Columns:</span>
+                                                <span class="badge bg-primary">{{ data.columns|length }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>Rows:</span>
+                                                <span class="badge bg-primary">{{ data.rows|length }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>Chart Type:</span>
+                                                <span class="badge bg-info">{{ data.data_type|title }}</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Current Settings:</strong>
+                                        <ul class="list-group mt-2">
+                                            <li class="list-group-item">
+                                                <span>Title: </span>
+                                                <strong>{{ data.chart_title if data.chart_title else 'Not set' }}</strong>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <span>X-Axis: </span>
+                                                <strong>{{ data.x_axis_label if data.x_axis_label else 'Not set' }}</strong>
+                                            </li>
+                                            <li class="list-group-item">
+                                                <span>Y-Axis: </span>
+                                                <strong>{{ data.y_axis_label if data.y_axis_label else 'Not set' }}</strong>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form Actions -->
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{{ url_for('my_data') }}" class="btn btn-secondary me-md-2">
+                                    <i class="fas fa-arrow-left"></i> Back to My Data
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Customizations
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update color previews when color inputs change
+        document.addEventListener('DOMContentLoaded', function() {
+            const colorInputs = document.querySelectorAll('input[type="color"]');
+            colorInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const index = this.name.split('_')[1];
+                    const preview = document.getElementById('colorPreview' + index);
+                    preview.style.backgroundColor = this.value;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
